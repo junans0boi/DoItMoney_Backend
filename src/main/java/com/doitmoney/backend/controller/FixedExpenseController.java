@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/fixed-expenses")
+@RequestMapping("/api/fixed-expenses")
 public class FixedExpenseController {
 
     private final FixedExpenseService fixedExpenseService;
