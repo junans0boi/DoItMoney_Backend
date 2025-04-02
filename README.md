@@ -91,7 +91,7 @@ doitmoney-backend/
 
 API 문서는 Swagger를 통해 제공됩니다. 서버 실행 후 다음 URL에서 확인할 수 있습니다.
 
-http://localhost:5009/swagger-ui/index.html
+[http://localhost:5009/swagger-ui/index.html](http://doitmoney.kro.kr/api/swagger-ui/index.html)
 
 ⸻
 
