@@ -1,6 +1,6 @@
 package com.doitmoney.backend.security;
 
-import com.doitmoney.backend.entity.User;
+import com.doitmoney.backend.user.entity.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
