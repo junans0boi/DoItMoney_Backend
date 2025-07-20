@@ -1,7 +1,10 @@
 package com.doitmoney.backend.transaction.entity;
 
+import com.doitmoney.backend.account.entity.Account;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -12,7 +15,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder  // @Builder 추가: Transaction.builder() 사용 가능
+@Builder
 public class Transaction {
 
     @Id
@@ -21,41 +24,37 @@ public class Transaction {
 
     @Id
     @Column(name = "id", nullable = false)
-    private Integer id;  // 회원별 거래 ID
+    private Integer id;
 
     @Column(name = "transaction_date", nullable = false)
     private LocalDate transactionDate;
 
-    @Column(name = "transaction_type", nullable = false)
     @Enumerated(EnumType.STRING)
+    @Column(name = "transaction_type", nullable = false)
     private TransactionType transactionType;
 
-    @Column(name = "amount", nullable = false)
+    @Column(nullable = false)
     private Integer amount;
 
-    // 분류 필드 추가 (예: 식비, 교통/차량, 문화생활, 등)
-    @Column(name = "category", length = 50)
+    @Column(length = 50)
     private String category;
 
-    @Column(name = "description")
     private String description;
 
-    @Column(name = "account_name")
+    /** 참고용: 실제로는 account 연관관계로도 조회 가능 */
+    @Column(name = "account_name", length = 50, nullable = false)
     private String accountName;
 
-    @Column(name = "account_number")
+    @Column(name = "account_number", length = 50, nullable = false)
     private String accountNumber;
 
-    @Column(name = "receipt_image")
-    private String receiptImage;
-
-    @Column(name = "withdraw_owner")
-    private String withdrawOwner;
-
-    @Column(name = "deposit_owner")
-    private String depositOwner;
+    /** FK 컬럼 매핑 */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id", nullable = false)
+    @JsonIgnore
+    private Account account;
 
     @Builder.Default
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }

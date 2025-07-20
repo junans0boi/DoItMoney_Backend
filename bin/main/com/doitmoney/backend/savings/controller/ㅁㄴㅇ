@@ -1,0 +1,14 @@
+    @PutMapping("/goals/{id}")
+    public SavingsGoalDTO update(
+        @AuthenticationPrincipal CustomUserDetails user,
+        @PathVariable Long id,
+        @RequestBody CreateSavingsGoalRequest req
+    ) {
+        // savingType is always ACCOUNT; req contains title, targetAmount, targetAccountId
+        var g = svc.updateGoal(
+            user.getUserId(),
+            id,
+            req.title(),
+            req.targetAmount(),
+            req.targetAccountId()
+        );

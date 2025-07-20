@@ -1,35 +1,105 @@
 package com.doitmoney.backend.fixedExpense.controller;
 
+import java.util.List;
+
+import com.doitmoney.backend.account.entity.Account;
+import com.doitmoney.backend.account.repository.AccountRepository;
+import com.doitmoney.backend.fixedExpense.dto.FixedExpenseRequest;
 import com.doitmoney.backend.fixedExpense.entity.FixedExpense;
 import com.doitmoney.backend.fixedExpense.service.FixedExpenseService;
+import com.doitmoney.backend.user.entity.User;
+import com.doitmoney.backend.security.CustomUserDetails;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/fixed-expenses")
 public class FixedExpenseController {
 
-    private final FixedExpenseService fixedExpenseService;
+    private final FixedExpenseService svc;
+    private final AccountRepository accountRepo;
 
-    @Autowired
-    public FixedExpenseController(FixedExpenseService fixedExpenseService) {
-        this.fixedExpenseService = fixedExpenseService;
+    public FixedExpenseController(FixedExpenseService svc,
+                                  AccountRepository accountRepo) {
+        this.svc = svc;
+        this.accountRepo = accountRepo;
     }
 
-    // 고정지출 등록 (userId 경로 변수 사용 - 실제로는 사용자 인증 후 처리하는 것이 좋습니다)
-    @PostMapping("/{userId}")
-    public FixedExpense addFixedExpense(@PathVariable Long userId, @RequestBody FixedExpense fixedExpense) {
-        // 클라이언트에서 user 정보가 전달되지 않는 경우, 별도 User 조회 후 설정 필요
-        // 여기서는 단순화를 위해 fixedExpense 객체에 user 정보가 세팅되어 있다고 가정합니다.
-        return fixedExpenseService.addFixedExpense(fixedExpense);
+    /** 전체 목록 조회 */
+    @GetMapping
+    public List<FixedExpense> list(@AuthenticationPrincipal CustomUserDetails user) {
+        return svc.getFixedExpensesByUserId(user.getUserId());
     }
 
-    // 특정 유저의 고정지출 조회
-    @GetMapping("/{userId}")
-    public List<FixedExpense> getFixedExpensesByUserId(@PathVariable Long userId) {
-        return fixedExpenseService.getFixedExpensesByUserId(userId);
+    /** 신규 등록 */
+    @PostMapping
+    public FixedExpense create(
+        @AuthenticationPrincipal CustomUserDetails user,
+        @RequestBody FixedExpenseRequest req
+    ) {
+        // 1) DTO → Entity
+        FixedExpense fe = new FixedExpense();
+        fe.setUser(new User(user.getUserId(), null, null, null, null, null));
+        fe.setAmount(req.getAmount());
+        fe.setCategory(req.getCategory());
+        fe.setContent(req.getContent());
+        fe.setDayOfMonth(req.getDayOfMonth());
+        fe.setTransactionType(req.getTransactionType());
+        fe.setActive(true);
+
+        // 2) 계좌 매핑
+        Account from = accountRepo.findById(req.getFromAccountId())
+            .orElseThrow(() -> new RuntimeException("출금 계좌를 찾을 수 없습니다."));
+        fe.setFromAccount(from);
+
+        if (req.getToAccountId() != null) {
+            Account to = accountRepo.findById(req.getToAccountId())
+                .orElseThrow(() -> new RuntimeException("입금 계좌를 찾을 수 없습니다."));
+            fe.setToAccount(to);
+        }
+
+        // 3) 저장
+        return svc.addFixedExpense(fe);
+    }
+
+    /** 수정 */
+    @PutMapping("/{id}")
+    public FixedExpense update(
+        @AuthenticationPrincipal CustomUserDetails user,
+        @PathVariable Long id,
+        @RequestBody FixedExpenseRequest req
+    ) {
+        // 1) DTO → Entity
+        FixedExpense fe = new FixedExpense();
+        fe.setAmount(req.getAmount());
+        fe.setCategory(req.getCategory());
+        fe.setContent(req.getContent());
+        fe.setDayOfMonth(req.getDayOfMonth());
+        fe.setTransactionType(req.getTransactionType());
+        fe.setActive(req.isActive());
+
+        // 2) 계좌 매핑
+        Account from = accountRepo.findById(req.getFromAccountId())
+            .orElseThrow(() -> new RuntimeException("출금 계좌를 찾을 수 없습니다."));
+        fe.setFromAccount(from);
+
+        if (req.getToAccountId() != null) {
+            Account to = accountRepo.findById(req.getToAccountId())
+                .orElseThrow(() -> new RuntimeException("입금 계좌를 찾을 수 없습니다."));
+            fe.setToAccount(to);
+        }
+
+        // 3) 업데이트
+        return svc.updateFixedExpense(user.getUserId(), id, fe);
+    }
+
+    /** 삭제 */
+    @DeleteMapping("/{id}")
+    public void delete(
+        @AuthenticationPrincipal CustomUserDetails user,
+        @PathVariable Long id
+    ) {
+        svc.deleteFixedExpense(user.getUserId(), id);
     }
 }

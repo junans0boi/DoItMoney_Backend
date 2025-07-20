@@ -1,56 +1,80 @@
 package com.doitmoney.backend.transaction.controller;
 
+import java.io.InputStream;
+import java.util.List;
 import com.doitmoney.backend.transaction.entity.Transaction;
 import com.doitmoney.backend.transaction.service.TransactionService;
+import com.doitmoney.backend.security.CustomUserDetails;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/transactions")
 public class TransactionController {
 
-    private final TransactionService transactionService;
+    private final TransactionService svc;
 
-    @Autowired
-    public TransactionController(TransactionService transactionService) {
-        this.transactionService = transactionService;
+    public TransactionController(TransactionService svc) {
+        this.svc = svc;
     }
 
-    // (1) 기존: URL 파라미터로 userId를 받아 거래 내역 조회
-    @GetMapping("/{userId}")
-    public List<Transaction> getTransactionsByUserId(@PathVariable Long userId) {
-        return transactionService.getTransactionsByUserId(userId);
-    }
-
-    // (2) 기존: 거래 추가
-    @PostMapping("/{userId}")
-    public Transaction addTransaction(@PathVariable Long userId, @RequestBody Transaction transaction) {
-        return transactionService.addTransaction(userId, transaction);
-    }
-
-    // (3) 새로 추가: 로그인된 사용자의 거래 내역 조회
     @GetMapping
-    public List<Transaction> getMyTransactions(Authentication authentication) {
-        // ──────────────────────────────────────────────────────────────────────────────────────
-        // ① Authentication에서 현재 로그인된 사용자 정보를 가져옴
-        //    (예: CustomUserDetails에 getId()가 있다면 캐스팅 후 userId 추출)
-        // ──────────────────────────────────────────────────────────────────────────────────────
-        /*
-          예시:
-          CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-          Long loggedInUserId = userDetails.getUserId();
-        */
-
-        // 아래는 "로그인한 userId"를 하드코딩 가정 또는 별도 로직으로 얻었다고 예시
-        Long loggedInUserId = 1L; // 실제로는 인증 객체에서 ID를 꺼내야 합니다.
-
-        // ──────────────────────────────────────────────────────────────────────────────────────
-        // ② 로그인된 사용자의 거래 내역을 서비스 계층에서 조회
-        // ──────────────────────────────────────────────────────────────────────────────────────
-        return transactionService.getTransactionsByUserId(loggedInUserId);
- 
+    public List<Transaction> list(@AuthenticationPrincipal CustomUserDetails user) {
+        return svc.getTransactionsByUserId(user.getUserId());
     }
+
+    @PostMapping
+    public Transaction create(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @RequestBody Transaction tx) {
+        return svc.addTransaction(user.getUserId(), tx);
+    }
+
+    @PutMapping("/{id}")
+    public Transaction update(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @PathVariable Integer id,
+            @RequestBody Transaction tx) {
+        return svc.updateTransaction(user.getUserId(), id, tx);
+    }
+
+    @GetMapping("/{id}")
+    public Transaction getOne(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @PathVariable Integer id) {
+        return svc.getTransactionByUserIdAndId(user.getUserId(), id);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @PathVariable Integer id) {
+        svc.deleteTransaction(user.getUserId(), id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/decrypt")
+    public ResponseEntity<?> decryptExcel(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("password") String password) {
+        try (InputStream in = file.getInputStream()) {
+            List<List<List<String>>> data = svc.decryptAndParseExcel(in, password);
+            return ResponseEntity.ok(data);
+
+        } catch (BadCredentialsException e) {
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("엑셀 처리 오류: " + e.getMessage());
+        }
+    }
+
 }

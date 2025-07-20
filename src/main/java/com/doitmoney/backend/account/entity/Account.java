@@ -1,10 +1,15 @@
 package com.doitmoney.backend.account.entity;
 
+import com.doitmoney.backend.fixedExpense.entity.FixedExpense;
+import com.doitmoney.backend.transaction.entity.Transaction;
 import com.doitmoney.backend.user.entity.User;
-import com.fasterxml.jackson.annotation.JsonIgnore; // 추가
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "account")
@@ -19,30 +24,39 @@ public class Account {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 이 계좌가 속한 사용자 정보 (직렬화에서 제외)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    @JsonIgnore  // 추가: JSON 직렬화 시 user 필드 무시
+    @JsonIgnore
     private User user;
 
-    // 계좌 유형: BANK, CARD, CASH, ETC
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AccountType accountType;
 
-    // 은행 또는 카드명 (예: "신한은행", "국민카드")
     @Column(length = 50, nullable = false)
     private String institutionName;
 
-    // 계좌번호, 카드번호 등 (현금인 경우 null 가능)
     @Column(length = 50)
     private String accountNumber;
 
-    // 현재 잔액 (카드의 경우 잔액 대신 결제 예정금액 등으로 활용 가능)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "detail_type", length = 20, nullable = true)  // nullable=true로 변경
+    private BankDetail detailType;
+
     @Column(nullable = false)
     private Long balance;
 
     @Builder.Default
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    /** 고정지출: Account 삭제 시 연관 고정지출도 자동 삭제 */
+    @Builder.Default
+    @OneToMany(mappedBy = "fromAccount", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<FixedExpense> fixedExpenses = new ArrayList<>();
+
+    /** 거래: Account 삭제 시 연관 거래도 자동 삭제 */
+    @Builder.Default
+    @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Transaction> transactions = new ArrayList<>();
 }

@@ -59,6 +59,7 @@ public class FixedExpense {
     private Account toAccount;
 
     // 고정지출 활성화 여부
+    @Builder.Default
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 

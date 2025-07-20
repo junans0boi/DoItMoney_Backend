@@ -1,40 +1,47 @@
 package com.doitmoney.backend.account.controller;
 
+import java.util.List;
 import com.doitmoney.backend.account.entity.Account;
 import com.doitmoney.backend.account.service.AccountService;
-import com.doitmoney.backend.user.entity.User;
-import com.doitmoney.backend.user.repository.UserRepository;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import com.doitmoney.backend.security.CustomUserDetails;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/accounts")
 public class AccountController {
 
-    private final AccountService accountService;
-    private final UserRepository userRepository; // UserRepository 주입
+    private final AccountService svc;
 
-    @Autowired
-    public AccountController(AccountService accountService, UserRepository userRepository) {
-        this.accountService = accountService;
-        this.userRepository = userRepository;
+    public AccountController(AccountService svc) {
+        this.svc = svc;
     }
 
-    // 계좌 등록 – 실제 서비스에서는 인증된 사용자 정보를 사용해야 합니다.
-    @PostMapping("/{userId}")
-    public Account addAccount(@PathVariable Long userId, @RequestBody Account account) {
-        // User 엔티티를 조회하여 account에 세팅
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
-        account.setUser(user);
-        return accountService.addAccount(account);
+    @GetMapping
+    public List<Account> list(Authentication auth) {
+        Long uid = ((CustomUserDetails)auth.getPrincipal()).getUserId();
+        return svc.getAccountsByUserId(uid);
     }
 
-    // 특정 사용자의 등록된 계좌 목록 조회
-    @GetMapping("/{userId}")
-    public List<Account> getAccountsByUserId(@PathVariable Long userId) {
-        return accountService.getAccountsByUserId(userId);
+    @PostMapping
+    public Account create(Authentication auth,
+                          @RequestBody Account acct) {
+        Long uid = ((CustomUserDetails)auth.getPrincipal()).getUserId();
+        return svc.addAccount(uid, acct);
+    }
+
+    @PutMapping("/{accountId}")
+    public Account update(Authentication auth,
+                          @PathVariable Long accountId,
+                          @RequestBody Account upd) {
+        Long uid = ((CustomUserDetails)auth.getPrincipal()).getUserId();
+        return svc.updateAccount(uid, accountId, upd);
+    }
+
+    @DeleteMapping("/{accountId}")
+    public void delete(Authentication auth,
+                       @PathVariable Long accountId) {
+        Long uid = ((CustomUserDetails)auth.getPrincipal()).getUserId();
+        svc.deleteAccount(uid, accountId);
     }
 }

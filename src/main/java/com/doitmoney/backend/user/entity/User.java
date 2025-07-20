@@ -1,70 +1,39 @@
 package com.doitmoney.backend.user.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class User {
-
-    @Id
+    @Id @Column(name="user_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long userId;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique=true, nullable=false)
     private String email;
 
-    @Column(nullable = false)
-    private String password;  // 암호화되어 저장
+    @Column(unique=true, nullable=false)
+    private String phone;
 
-    @Column(nullable = false, unique = true)
-    private String nickname;
+    @Column(nullable=false)
+    private String password;
 
-    @Column(name = "is_verified")
-    private Boolean isVerified = false;
+    @Column(nullable=false)
+    private String username;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    // 기본 생성자, Getter/Setter
-    public User() {}
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getNickname() {
-        return nickname;
-    }
-    public void setNickname(String nickname) {
-        this.nickname = nickname;
-    }
-
-    public Boolean getIsVerified() {
-        return isVerified;
-    }
-    public void setIsVerified(Boolean isVerified) {
-        this.isVerified = isVerified;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
+    // 기본값을 DDL에 포함
+    @Column(nullable=false,
+            columnDefinition="varchar(255) default 'https://blog.kakaocdn.net/dn/4CElL/btrQw18lZMc/Q0oOxqQNdL6kZp0iSKLbV1/img.png'")
+    private String profileImageUrl;
 }
